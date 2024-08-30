@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Environment') {
+            steps {
+                script {
+
+                    def branch = env.BRANCH_NAME
+                    def envFileUser = branch == 'main' ? '.env.user' : '.env.user.dev'
+                    def envFileOrder = branch == 'main' ? '.env.order' : '.env.order.dev'
+
+
+                    sh """
+                    cp ${envFileUser} .env.user
+                    cp ${envFileOrder} .env.order
+                    """
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    def userImage = "user-service:${env.BUILD_ID}"
+                    def orderImage = "order-service:${env.BUILD_ID}"
+                    def profile = env.BRANCH_NAME == 'main' ? 'production' : 'development'
+
+                    // Build Docker images based on the profile
+                    sh "docker build -f Dockerfile.user.${profile} -t ${userImage} ."
+                    sh "docker build -f Dockerfile.order.${profile} -t ${orderImage} ."
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                script {
+                    def userImage = "user-service:${env.BUILD_ID}"
+                    def orderImage = "order-service:${env.BUILD_ID}"
+
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
+                    }
+
+                    sh "docker tag ${userImage} ${DOCKER_USERNAME}/user-service:${env.BUILD_ID}"
+                    sh "docker tag ${orderImage} ${DOCKER_USERNAME}/order-service:${env.BUILD_ID}"
+                    sh "docker push ${DOCKER_USERNAME}/user-service:${env.BUILD_ID}"
+                    sh "docker push ${DOCKER_USERNAME}/order-service:${env.BUILD_ID}"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    def profile = env.BRANCH_NAME == 'main' ? 'production' : 'development'
+
+                    sh """
+                    docker-compose -f docker-compose.yml --profile ${profile} up -d --build
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

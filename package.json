@@ -1,0 +1,21 @@
+{
+  "name": "express_microservice",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev:user": "nodemon dist/userService.js",
+    "dev:order": "nodemon dist/orderService.js",
+    "start": "tsc && node dist/userService.js",
+    "start:order": "tsc && node dist/orderService.js",
+    "compile": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.17.21",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4",
+    "typescript": "^5.5.4"
+  }
+}

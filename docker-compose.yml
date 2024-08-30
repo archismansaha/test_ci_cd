@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.user
+    environment:
+      NODE_ENV: production
+    profiles:
+      - production  #Seperate profiles for production and development
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.order
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env.order
+    environment:
+      NODE_ENV: production 
+    profiles:
+      - production #Seperate profiles for production and development
+
+  user-service-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.user.dev
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.user
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app                      # Mount the current directory to /app in the container
+      - /app/node_modules           # Ensure node_modules is not overwritten by host
+    # command: npm run dev:user
+    profiles:
+      - development   #Seperate profiles for production and development
+
+  order-service-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.order.dev
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env.order
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app                      # Mount the current directory to /app in the container
+      - /app/node_modules           # Ensure node_modules is not overwritten by host
+    # command: npm run dev:order
+    profiles:
+      - development    #Seperate profiles for production and development
